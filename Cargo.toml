@@ -1,0 +1,10 @@
+[package]
+name = "mnist"
+version = "0.1.0"
+authors = ["cahu"]
+
+[dependencies]
+clap = "2.27.1"
+byteorder = "1.1.0"
+failure = "0.1.0"
+failure_derive = "0.1.0"
