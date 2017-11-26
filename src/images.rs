@@ -97,7 +97,7 @@ impl Images {
     pub fn iter(&self) -> Iter {
         Iter {
             cursor: 0,
-            images: &self,
+            images: self,
         }
     }
 }
