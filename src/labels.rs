@@ -7,6 +7,8 @@ use byteorder::{BigEndian, ReadBytesExt};
 
 use mnisterror::Result;
 
+const MAGIC_NUMBER: u32 = 0x801;
+
 pub struct Labels {
     num_labels:  usize,
     data:        Vec<u8>,
@@ -31,8 +33,10 @@ impl Labels {
 
         // verify magic number in header
         match cursor.read_u32::<BigEndian>() {
-            Ok(0x801) => {} // magic number
-            _         => { return Err(format_err!("Could not find the magic number for labels files")) }
+            Ok(MAGIC_NUMBER) => {}
+            _                => {
+                return Err(format_err!("Could not find the magic number ({:#X}) for labels files", MAGIC_NUMBER))
+            }
         }
 
         let num_labels = cursor.read_u32::<BigEndian>()

@@ -6,6 +6,8 @@ use byteorder::{BigEndian, ReadBytesExt};
 
 use mnisterror::Result;
 
+const MAGIC_NUMBER: u32 = 0x803;
+
 pub struct Images {
     num_images:  usize,
     width:       usize,
@@ -41,8 +43,10 @@ impl Images {
 
         // verify magic number in header
         match cursor.read_u32::<BigEndian>() {
-            Ok(0x803) => {} // magic number
-            _         => { return Err(format_err!("Could not find the magic number for images files")) }
+            Ok(MAGIC_NUMBER) => {}
+            _                => {
+                return Err(format_err!("Could not find the magic number ({:#X}) for images files", MAGIC_NUMBER))
+            }
         }
 
         let num_images = cursor.read_u32::<BigEndian>()
