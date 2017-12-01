@@ -114,6 +114,10 @@ impl<'a> Image<'a> {
     pub fn size(&self) -> usize {
         self.width * self.height
     }
+
+    pub fn data(&self) -> &'a [u8] {
+        self.data
+    }
 }
 
 impl<'a> Iterator for Iter<'a> {
