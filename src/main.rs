@@ -6,8 +6,6 @@ use mnist::net::Net;
 use mnist::images::Images;
 use mnist::labels::Labels;
 
-extern crate nalgebra;
-use nalgebra::DVector;
 
 fn main() {
     let matches = App::new("MNIST test")
@@ -39,10 +37,9 @@ fn main() {
 
     // Evaluate each image
     for img in images.iter() {
-        let input = DVector::from_iterator(
-            img.size(),
-            img.data().iter().map(|&e| e as f64 / 255f64)
-        );
-        net.feed(input.as_slice());
+        let input : Vec<_> = img.data().iter()
+            .map(|&e| e as f64 / 255f64)
+            .collect();
+        net.feed(&input);
     }
 }
