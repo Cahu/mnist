@@ -2,10 +2,12 @@ extern crate clap;
 use clap::{App, Arg};
 
 extern crate mnist;
+use mnist::net::Net;
 use mnist::images::Images;
 use mnist::labels::Labels;
-use mnist::layer::Layer;
-use mnist::neuron::Bucket;
+
+extern crate nalgebra;
+use nalgebra::DVector;
 
 fn main() {
     let matches = App::new("MNIST test")
@@ -31,27 +33,16 @@ fn main() {
     let images = Images::new(images_file).unwrap();
     let labels = Labels::new(labels_file).unwrap();
 
-    fn sigma(val: f64) -> f64 {
-        1f64 / (1f64 + (-val).exp())
-    }
-
-    // Build the input layer
-    let mut input_vec = Vec::with_capacity(images.image_size());
-    for _ in 0 .. images.image_size() {
-        input_vec.push(Bucket::new(0f64));
-    }
-
-    // Build the first hidden layer
-    let hidden1 = Layer::new(16, &input_vec, sigma);
-
-    // Build the second hidden layer
-    let hidden2 = Layer::new(16, hidden1.outputs(), sigma);
+    // Build the network
+    let layers = [images.image_size(), 16, 16, 10];
+    let mut net = Net::new(&layers);
 
     // Evaluate each image
     for img in images.iter() {
-        for (i, n) in input_vec.iter().enumerate() {
-            let value = f64::from(img.data()[i]) / 255f64;
-            n.put(value);
-        }
+        let input = DVector::from_iterator(
+            img.size(),
+            img.data().iter().map(|&e| e as f64 / 255f64)
+        );
+        net.feed(input.as_slice());
     }
 }

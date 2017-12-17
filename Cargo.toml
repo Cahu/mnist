@@ -7,3 +7,4 @@ authors = ["cahu"]
 clap = "2.27.1"
 byteorder = "1.1.0"
 failure = "0.1.1"
+nalgebra = "0.13"
