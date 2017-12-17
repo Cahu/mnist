@@ -23,15 +23,23 @@ impl Net {
     pub fn new(layers_sizes: &[usize]) -> Self {
         assert!(layers_sizes.len() >= 2);
 
-        // Activation value before application of the sigmoid
-        let mut zz = Vec::with_capacity(layers_sizes.len());
-
-        // Activation value of neurons
+        // Activation value of neurons. aa[0] contains the input.
         let mut aa = Vec::with_capacity(layers_sizes.len());
+        aa.push(DVector::from_element(layers_sizes[0], 0f64));
 
-        // biases[i] is the vector of biases of layer i. Thus biases[i][j] is the bias of the j-th
-        // neuron from layer i.
-        let mut bb = Vec::with_capacity(layers_sizes.len()-1);
+        // Biases. bb[0] won't be used since layer 0 is the input layer.
+        let mut bb = Vec::with_capacity(layers_sizes.len());
+        bb.push(DVector::from_element(0, 0f64));
+
+        // Weigthed inputs. zz[0] won't be used since layer 0 corresponds to the input layer.
+        let mut zz = Vec::with_capacity(layers_sizes.len());
+        zz.push(DVector::from_element(0, 0f64));
+
+        for &sz in layers_sizes[1..].iter() {
+            aa.push(DVector::from_element(sz,  0.5));
+            bb.push(DVector::from_element(sz, -0.5));
+            zz.push(DVector::from_element(sz, sigmoid(0.5)));
+        }
 
         // weights[i] is the matrix of weigths between layer i and layer i+1. Thus, weight[i][k][j]
         // is the weight between the j-th neuron of layer i and the k-th neuron in layer i+1.
@@ -40,16 +48,9 @@ impl Net {
         let mut ww = Vec::with_capacity(layers_sizes.len()-1);
 
         for window in layers_sizes.windows(2) {
-            let j = window[0]; // number of neurons in layer i
-            let k = window[1]; // number of neurons in layer i+1
-            let a = DVector::from_element(k, 0.5);
-            let z = DVector::from_element(k, sigmoid(0.5));
-            let b = DVector::from_element(k, 0.5);
-            let w = DMatrix::from_element(j, k, 0.5);
-            bb.push(b);
-            ww.push(w);
-            zz.push(z);
-            aa.push(a);
+            let j = window[0]; // number of neurons in layer l
+            let k = window[1]; // number of neurons in layer l+1
+            ww.push(DMatrix::from_element(k, j, 0.5));
         }
         Net {
             z: zz,
@@ -78,8 +79,8 @@ impl Net {
         self.z[layer] = { // weighted input
             let activations = &self.a[layer-1];
             let weigths     = &self.w[layer-1];
-            let biases      = &self.b[layer-1];
-            weigths * activations - biases
+            let biases      = &self.b[layer];
+            weigths * activations + biases
         };
         self.a[layer] = self.z[layer].map(sigmoid);
     }
