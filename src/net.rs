@@ -1,7 +1,7 @@
 use nalgebra::{DMatrix, DVector};
 
 pub struct Net {
-    /// pre-activations (before application of the sigmoid)
+    /// weighted inputs for each layer (before application of the sigmoid)
     z: Vec<DVector<f64>>,
     /// activations
     a: Vec<DVector<f64>>,
@@ -75,7 +75,7 @@ impl Net {
     fn compute_activation(&mut self, layer: usize) {
         assert!(layer > 0);
         assert!(layer < self.a.len());
-        self.z[layer] = {
+        self.z[layer] = { // weighted input
             let activations = &self.a[layer-1];
             let weigths     = &self.w[layer-1];
             let biases      = &self.b[layer-1];
