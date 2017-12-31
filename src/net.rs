@@ -1,3 +1,6 @@
+//! Sources used to build this:
+//! - http://neuralnetworksanddeeplearning.com
+//! - 3Blue1Brown series on neural networks (youtube)
 use nalgebra::{DMatrix, DVector};
 
 pub struct Net {
