@@ -44,16 +44,17 @@ impl Net {
             zz.push(DVector::from_element(sz, sigmoid(0.5)));
         }
 
-        // weights[i] is the matrix of weigths between layer i and layer i+1. Thus, weight[i][k][j]
-        // is the weight between the j-th neuron of layer i and the k-th neuron in layer i+1.
-        // Indices j and k appear reversed but the order is intended to let us use matrix
-        // multiplication.
-        let mut ww = Vec::with_capacity(layers_sizes.len()-1);
+        // weights[l] is the matrix of weigths between layer l and layer l-1. Thus, weight[l][j][k]
+        // is the weight between the k-th neuron of layer l-1 and the j-th neuron in layer l
+        // (weigths[0] won't be used).  Indices j and k appear reversed but the order is intended
+        // to let us use matrix multiplication.
+        let mut ww = Vec::with_capacity(layers_sizes.len());
+        ww.push(DMatrix::from_element(0, 0, 0.0));
 
         for window in layers_sizes.windows(2) {
-            let j = window[0]; // number of neurons in layer l
-            let k = window[1]; // number of neurons in layer l+1
-            ww.push(DMatrix::from_element(k, j, 0.5));
+            let k = window[0]; // number of neurons in layer l-1
+            let j = window[1]; // number of neurons in layer l
+            ww.push(DMatrix::from_element(j, k, 0.5));
         }
         Net {
             z: zz,
@@ -81,7 +82,7 @@ impl Net {
         assert!(layer < self.a.len());
         self.z[layer] = { // weighted input
             let activations = &self.a[layer-1];
-            let weigths     = &self.w[layer-1];
+            let weigths     = &self.w[layer];
             let biases      = &self.b[layer];
             weigths * activations + biases
         };
