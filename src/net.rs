@@ -24,6 +24,20 @@ fn sigmoid_prime(z: f64) -> f64 {
     z.exp() / (1f64 + z.exp()).powf(2f64)
 }
 
+fn cost_function(expected: &[f64], output: &[f64]) -> f64 {
+    expected.iter().zip(output.iter())
+        .map(|(&y, &a)| 0.5 * (y - a).powi(2))
+        .sum()
+}
+
+/// Partial derivatives of the cost function with respect to the output activation value.
+/// Returns a vector for convenience.
+fn cost_function_prime(expected: &[f64], output: &[f64]) -> DVector<f64> {
+    let expected = DVector::from_column_slice(expected.len(), expected);
+    let output   = DVector::from_column_slice(output.len(),   output);
+    output - expected
+}
+
 impl Net {
     pub fn new(layers_sizes: &[usize]) -> Self {
         // number of layers
@@ -85,6 +99,64 @@ impl Net {
 
         // return values of the output layer
         self.output()
+    }
+
+    pub fn learn_batch(&mut self, batch: &Vec<(&[f64], &[f64])>, learning_rate: f64) {
+        // We use the same equations (and their names, i.e. BP{1,2,3,4}) as described
+        // in the 2nd chapter of neuralnetworksanddeeplearning.com.
+        
+        // initialize vectors to contain partial derivatives of the cost with respect to biases
+        let mut batch_dC_dBias = Vec::with_capacity(self.num_layers);
+        for b in self.b.iter() {
+            batch_dC_dBias.push(DVector::zeros(b.len()));
+        }
+
+        // initialize matrices to contain partial derivatives of the cost with respect to weights
+        let mut batch_dC_dWeight = Vec::with_capacity(self.num_layers);
+        for w in self.w.iter() {
+            batch_dC_dWeight.push(DMatrix::zeros(w.nrows(), w.ncols()));
+        }
+
+        for &(input, solution) in batch.iter() {
+            {
+                self.feed(input);
+            }
+
+            // sigma'(z^L) 
+            let mut sprime = self.z[self.num_layers-1].map(sigmoid_prime);
+
+            // output error, using BP1.
+            let mut errors = {
+                let output = self.output();
+                cost_function_prime(solution, output).component_mul(&sprime)
+            };
+
+            batch_dC_dBias[self.num_layers-1] += errors.clone(); // BP3
+            batch_dC_dWeight[self.num_layers-1] += errors.clone() * self.a[self.num_layers-2].transpose(); // Adapted from BP4
+
+            // Backprop
+            for l in (1 .. self.num_layers - 1).rev() {
+                sprime = self.z[l].map(sigmoid_prime); // sigma'(z^l)
+
+                // errors for the previous layer
+                errors = (self.w[l+1].transpose() * errors).component_mul(&sprime); // BP2
+
+                // gradient part of biases
+                batch_dC_dBias[l] += errors.clone(); // BP3
+
+                // gradient part of weights
+                batch_dC_dWeight[l] += errors.clone() * self.a[l-1].transpose(); // Adapted from BP4
+            }
+
+            // Gradient descent
+            let scal = -1.0 * learning_rate / batch.len() as f64;
+            for (bias, batch_dc_db) in self.b.iter_mut().zip(batch_dC_dBias.iter()) {
+                *bias += scal * batch_dc_db;
+            }
+            for (weights, batch_dc_dw) in self.w.iter_mut().zip(batch_dC_dWeight.iter()) {
+                *weights += scal * batch_dc_dw;
+            }
+        }
     }
 
     fn compute_activation(&mut self, layer: usize) {

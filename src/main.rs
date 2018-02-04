@@ -40,6 +40,11 @@ fn main() {
         let input : Vec<_> = img.data().iter()
             .map(|&e| e as f64 / 255f64)
             .collect();
-        net.feed(&input);
+        //net.feed(&input);
+        let solution = vec![0f64; 10];
+        let mut batch = Vec::new();
+        batch.push((input.as_slice(), solution.as_slice()));
+
+        net.learn_batch(&batch, 0.01);
     }
 }
