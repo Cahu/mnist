@@ -65,3 +65,11 @@ impl Labels {
     }
 }
 
+impl<'a> Iterator for Iter<'a> {
+    type Item = &'a u8;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.next()
+    }
+}
+
