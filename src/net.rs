@@ -101,26 +101,24 @@ impl Net {
         self.output()
     }
 
-    pub fn learn_batch(&mut self, batch: &Vec<(&[f64], &[f64])>, learning_rate: f64) {
+    pub fn learn_batch(&mut self, batch: &[(Vec<f64>, Vec<f64>)], learning_rate: f64) {
         // We use the same equations (and their names, i.e. BP{1,2,3,4}) as described
         // in the 2nd chapter of neuralnetworksanddeeplearning.com.
         
         // initialize vectors to contain partial derivatives of the cost with respect to biases
-        let mut batch_dC_dBias = Vec::with_capacity(self.num_layers);
+        let mut batch_dcost_dbias = Vec::with_capacity(self.num_layers);
         for b in self.b.iter() {
-            batch_dC_dBias.push(DVector::zeros(b.len()));
+            batch_dcost_dbias.push(DVector::zeros(b.len()));
         }
 
         // initialize matrices to contain partial derivatives of the cost with respect to weights
-        let mut batch_dC_dWeight = Vec::with_capacity(self.num_layers);
+        let mut batch_dcost_dweigth = Vec::with_capacity(self.num_layers);
         for w in self.w.iter() {
-            batch_dC_dWeight.push(DMatrix::zeros(w.nrows(), w.ncols()));
+            batch_dcost_dweigth.push(DMatrix::zeros(w.nrows(), w.ncols()));
         }
 
-        for &(input, solution) in batch.iter() {
-            {
-                self.feed(input);
-            }
+        for &(ref input, ref solution) in batch.iter() {
+            self.feed(&input);
 
             // sigma'(z^L) 
             let mut sprime = self.z[self.num_layers-1].map(sigmoid_prime);
@@ -131,8 +129,8 @@ impl Net {
                 cost_function_prime(solution, output).component_mul(&sprime)
             };
 
-            batch_dC_dBias[self.num_layers-1] += errors.clone(); // BP3
-            batch_dC_dWeight[self.num_layers-1] += errors.clone() * self.a[self.num_layers-2].transpose(); // Adapted from BP4
+            batch_dcost_dbias[self.num_layers-1] += errors.clone(); // BP3
+            batch_dcost_dweigth[self.num_layers-1] += errors.clone() * self.a[self.num_layers-2].transpose(); // Adapted from BP4
 
             // Backprop
             for l in (1 .. self.num_layers - 1).rev() {
@@ -142,18 +140,18 @@ impl Net {
                 errors = (self.w[l+1].transpose() * errors).component_mul(&sprime); // BP2
 
                 // gradient part of biases
-                batch_dC_dBias[l] += errors.clone(); // BP3
+                batch_dcost_dbias[l] += errors.clone(); // BP3
 
                 // gradient part of weights
-                batch_dC_dWeight[l] += errors.clone() * self.a[l-1].transpose(); // Adapted from BP4
+                batch_dcost_dweigth[l] += errors.clone() * self.a[l-1].transpose(); // Adapted from BP4
             }
 
             // Gradient descent
             let scal = -1.0 * learning_rate / batch.len() as f64;
-            for (bias, batch_dc_db) in self.b.iter_mut().zip(batch_dC_dBias.iter()) {
+            for (bias, batch_dc_db) in self.b.iter_mut().zip(batch_dcost_dbias.iter()) {
                 *bias += scal * batch_dc_db;
             }
-            for (weights, batch_dc_dw) in self.w.iter_mut().zip(batch_dC_dWeight.iter()) {
+            for (weights, batch_dc_dw) in self.w.iter_mut().zip(batch_dcost_dweigth.iter()) {
                 *weights += scal * batch_dc_dw;
             }
         }
