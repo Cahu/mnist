@@ -1,3 +1,4 @@
+use std::io;
 use std::io::Cursor;
 use std::io::prelude::*;
 use std::fs::File;
@@ -117,6 +118,18 @@ impl<'a> Image<'a> {
 
     pub fn data(&self) -> &'a [u8] {
         self.data
+    }
+
+    pub fn to_file(&self, path: &str) -> io::Result<()> {
+        use image::ColorType;
+        use image::bmp::BMPEncoder;
+        let mut f = File::create(path)?;
+        BMPEncoder::new(&mut f).encode(
+            self.data,
+            self.width as u32,
+            self.height as u32,
+            ColorType::Gray(8)
+        )
     }
 }
 

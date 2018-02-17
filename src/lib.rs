@@ -3,6 +3,7 @@ pub mod images;
 pub mod labels;
 pub mod mnisterror;
 
+extern crate image;
 extern crate byteorder;
 extern crate nalgebra;
 
