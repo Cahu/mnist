@@ -45,7 +45,7 @@ pub fn run_mnist() {
 
     // Build batches
     let batch_size = 1;
-    let learning_rate = 0.1f64;
+    let learning_rate = 0.05f32;
 
     // Make pairs of example+solution
     let training_examples : Vec<_> = images.iter().zip(labels.iter())
@@ -72,20 +72,20 @@ pub fn run_mnist() {
     }
 }
 
-fn input_from_image(img: &Image) -> Vec<f64> {
+fn input_from_image(img: &Image) -> Vec<f32> {
     // Convert the pixel value (0 .. 255) into a float between 0 and 1.
     img.data().iter()
-        .map(|&e| e as f64 / 255f64)
+        .map(|&e| e as f32 / 255f32)
         .collect()
 }
 
-fn solution_from_label(label: u8) -> Vec<f64> {
-    let mut solution = vec![0f64; 10];
-    solution[label as usize] = 1f64;
+fn solution_from_label(label: u8) -> Vec<f32> {
+    let mut solution = vec![0f32; 10];
+    solution[label as usize] = 1f32;
     solution
 }
 
-fn guess_as_integer(guess: &[f64]) -> u8 {
+fn guess_as_integer(guess: &[f32]) -> u8 {
     let mut i = 0;
     let mut m = guess[0];
     for (idx, &f) in guess[1..].iter().enumerate() {

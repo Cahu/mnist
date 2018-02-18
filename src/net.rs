@@ -7,21 +7,21 @@ pub struct Net {
     /// number of layers
     num_layers: usize,
     /// weighted inputs for each layer (before application of the sigmoid)
-    z: Vec<DVector<f64>>,
+    z: Vec<DVector<f32>>,
     /// activations
-    a: Vec<DVector<f64>>,
+    a: Vec<DVector<f32>>,
     /// weights
-    w: Vec<DMatrix<f64>>,
+    w: Vec<DMatrix<f32>>,
     /// biases
-    b: Vec<DVector<f64>>,
+    b: Vec<DVector<f32>>,
 }
 
-fn sigmoid(z: f64) -> f64 {
-    1f64 / (1f64 + (-z).exp())
+fn sigmoid(z: f32) -> f32 {
+    1f32 / (1f32 + (-z).exp())
 }
 
-fn sigmoid_prime(z: f64) -> f64 {
-    z.exp() / (1f64 + z.exp()).powf(2f64)
+fn sigmoid_prime(z: f32) -> f32 {
+    z.exp() / (1f32 + z.exp()).powf(2f32)
 }
 
 pub fn cost_function(expected: &[f32], output: &[f32]) -> f32 {
@@ -32,7 +32,7 @@ pub fn cost_function(expected: &[f32], output: &[f32]) -> f32 {
 
 /// Partial derivatives of the cost function with respect to the output activation value.
 /// Returns a vector for convenience.
-fn cost_function_prime(expected: &[f64], output: &[f64]) -> DVector<f64> {
+fn cost_function_prime(expected: &[f32], output: &[f32]) -> DVector<f32> {
     let expected = DVector::from_column_slice(expected.len(), expected);
     let output   = DVector::from_column_slice(output.len(),   output);
     output - expected
@@ -49,15 +49,15 @@ impl Net {
 
         // Activation value of neurons. aa[0] contains the input.
         let mut aa = Vec::with_capacity(num_layers);
-        aa.push(DVector::from_element(layers_sizes[0], 0f64));
+        aa.push(DVector::from_element(layers_sizes[0], 0f32));
 
         // Biases. bb[0] won't be used since layer 0 is the input layer.
         let mut bb = Vec::with_capacity(num_layers);
-        bb.push(DVector::from_element(0, 0f64));
+        bb.push(DVector::from_element(0, 0f32));
 
         // Weigthed inputs. zz[0] won't be used since layer 0 corresponds to the input layer.
         let mut zz = Vec::with_capacity(num_layers);
-        zz.push(DVector::from_element(0, 0f64));
+        zz.push(DVector::from_element(0, 0f32));
 
         for &sz in layers_sizes[1..].iter() {
             aa.push(DVector::from_fn(sz, |_, _| {   thread_rng().next_f32() / 100. }));
@@ -87,11 +87,11 @@ impl Net {
         }
     }
 
-    pub fn output(&self) -> &[f64] {
+    pub fn output(&self) -> &[f32] {
         self.a[self.num_layers - 1].as_slice()
     }
 
-    pub fn feed(&mut self, input: &[f64]) -> &[f64] {
+    pub fn feed(&mut self, input: &[f32]) -> &[f32] {
         // set values of the input layer
         self.a[0].as_mut_slice().copy_from_slice(input);
 
@@ -104,7 +104,7 @@ impl Net {
         self.output()
     }
 
-    pub fn learn_batch(&mut self, batch: &[(Vec<f64>, Vec<f64>)], learning_rate: f64) {
+    pub fn learn_batch(&mut self, batch: &[(Vec<f32>, Vec<f32>)], learning_rate: f32) {
         // We use the same equations (and their names, i.e. BP{1,2,3,4}) as described
         // in the 2nd chapter of neuralnetworksanddeeplearning.com.
         
@@ -148,7 +148,7 @@ impl Net {
         }
 
         // Gradient descent
-        let scal = learning_rate / batch.len() as f64;
+        let scal = learning_rate / batch.len() as f32;
         for (bias, batch_dc_db) in self.b.iter_mut().zip(batch_dcost_dbias.iter()) {
             *bias -= scal * batch_dc_db;
         }
