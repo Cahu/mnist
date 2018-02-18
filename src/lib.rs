@@ -80,7 +80,7 @@ pub fn run_mnist() {
     let mut net = Net::new(&layers);
 
     // Build batches
-    let batch_size = 1;
+    let batch_size = 10;
     let learning_rate = 0.05f32;
 
     // Make pairs of example+solution
