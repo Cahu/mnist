@@ -17,6 +17,42 @@ use images::{Images, Image};
 use labels::Labels;
 
 
+pub fn run_identity() {
+    // 'Identity' network for debugging : three layers (input, 1 hidden, output). The output layer
+    // is of the same size as the input. The goal is to have the output match the input.
+    use rand::Rng;
+    use rand::thread_rng;
+
+    let input_size = 2;
+
+    let layers = [input_size, input_size, input_size, input_size];
+    let mut net = Net::new(&layers);
+
+    let mut training_examples = Vec::with_capacity(100000);
+    for _ in 0 .. training_examples.capacity() {
+        let mut example = Vec::with_capacity(input_size);
+        for _ in 0 .. input_size {
+            example.push(if thread_rng().next_u32() % 2 == 0 { 1. } else { 0. });
+        }
+        training_examples.push( (example.clone(), example.clone()) );
+    }
+
+    let batch_size = 1000;
+
+    for _epoch in 0 .. 10000 {
+        for batch in training_examples.chunks(batch_size) {
+            let sample = batch_size - 1;
+            //let before = net.feed(&batch[sample].0).to_vec();
+            net.learn_batch(&batch, 0.05);
+            let after = net.feed(&batch[sample].0).to_vec();
+            //println!("before: {:?} vs {:?}", batch[sample].0, before);
+            println!("after:  {:?} vs {:?}", batch[sample].0, after);
+            //std::thread::sleep(std::time::Duration::from_millis(100));
+        }
+    }
+}
+
+
 pub fn run_mnist() {
     let matches = App::new("MNIST test")
         .arg(
