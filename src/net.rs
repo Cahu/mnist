@@ -148,15 +148,15 @@ impl Net {
                 // gradient part of weights
                 batch_dcost_dweigth[l] += errors.clone() * self.a[l-1].transpose(); // Adapted from BP4
             }
+        }
 
-            // Gradient descent
-            let scal = -1.0 * learning_rate / batch.len() as f64;
-            for (bias, batch_dc_db) in self.b.iter_mut().zip(batch_dcost_dbias.iter()) {
-                *bias += scal * batch_dc_db;
-            }
-            for (weights, batch_dc_dw) in self.w.iter_mut().zip(batch_dcost_dweigth.iter()) {
-                *weights += scal * batch_dc_dw;
-            }
+        // Gradient descent
+        let scal = learning_rate / batch.len() as f64;
+        for (bias, batch_dc_db) in self.b.iter_mut().zip(batch_dcost_dbias.iter()) {
+            *bias -= scal * batch_dc_db;
+        }
+        for (weights, batch_dc_dw) in self.w.iter_mut().zip(batch_dcost_dweigth.iter()) {
+            *weights -= scal * batch_dc_dw;
         }
     }
 
