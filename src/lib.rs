@@ -48,42 +48,26 @@ pub fn run_mnist() {
     let learning_rate = 0.1f64;
 
     // Make pairs of example+solution
-    let training_examples : Vec<_> = images.iter().zip(labels.iter()).collect();
+    let training_examples : Vec<_> = images.iter().zip(labels.iter())
+        .map(|(ref i, &l)| (input_from_image(i), solution_from_label(l)) )
+        .collect();
 
-    for _ in 0..1 {
+    for epoch in 0 .. 1000 {
+        println!("epoch: {}", epoch);
+
         // Feed training batches to the net
-        for chunk in training_examples.chunks(batch_size).skip(0) {
-            println!("Before learning ...");
-            for &(ref image, &label) in chunk {
-                let input    = input_from_image(image);
-                let guessed  = net.feed(&input);
-                let solution = solution_from_label(label);
-                let cost     = cost_function(&guessed, &solution);
-
-                println!("Guess: {} vs {} - Cost: {}", guess_as_integer(&guessed), guess_as_integer(&solution), cost);
-            }
-
-            let mut batch = Vec::with_capacity(batch_size);
-            for &(ref image, &label) in chunk {
-                let input    = input_from_image(image);
-                let solution = solution_from_label(label);
-                batch.push((input, solution));
-            }
-
+        for chunk in training_examples.chunks(batch_size) {
             // Feed the batch
-            net.learn_batch(&batch, learning_rate);
+            net.learn_batch(chunk, learning_rate);
+        }
 
-            println!("After learning ...");
-            for &(ref image, &label) in chunk {
-                let input    = input_from_image(image);
-                let guessed  = net.feed(&input);
-                let solution = solution_from_label(label);
-                let cost     = cost_function(&guessed, &solution);
+        println!("After learning (epoch {})...", epoch);
+        for &(ref input, ref solution) in training_examples.iter().skip(epoch*10).take(10) {
+            let guessed  = net.feed(&input);
+            let cost     = cost_function(&guessed, &solution);
 
-                println!("Guess: {} vs {} - Cost: {}", guess_as_integer(&guessed), guess_as_integer(&solution), cost);
-            }
-
-            std::thread::sleep(std::time::Duration::from_millis(100));
+            println!("Guess: {} vs {} - Cost: {}", guess_as_integer(&guessed), guess_as_integer(&solution), cost);
+            println!("Guess: {:?}", guessed);
         }
     }
 }

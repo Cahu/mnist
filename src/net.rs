@@ -24,7 +24,7 @@ fn sigmoid_prime(z: f64) -> f64 {
     z.exp() / (1f64 + z.exp()).powf(2f64)
 }
 
-fn cost_function(expected: &[f64], output: &[f64]) -> f64 {
+pub fn cost_function(expected: &[f32], output: &[f32]) -> f32 {
     expected.iter().zip(output.iter())
         .map(|(&y, &a)| 0.5 * (y - a).powi(2))
         .sum()
@@ -60,9 +60,9 @@ impl Net {
         zz.push(DVector::from_element(0, 0f64));
 
         for &sz in layers_sizes[1..].iter() {
-            aa.push(DVector::from_fn(sz, |_, _| {   thread_rng().next_f64() / 10. }));
-            bb.push(DVector::from_fn(sz, |_, _| { - thread_rng().next_f64() / 10. }));
-            zz.push(DVector::from_fn(sz, |_, _| {   thread_rng().next_f64() / 10. }));
+            aa.push(DVector::from_fn(sz, |_, _| {   thread_rng().next_f32() / 100. }));
+            bb.push(DVector::from_fn(sz, |_, _| { - thread_rng().next_f32() / 100. }));
+            zz.push(DVector::from_fn(sz, |_, _| {   thread_rng().next_f32() / 100. }));
         }
 
         // weights[l] is the matrix of weigths between layer l and layer l-1. Thus, weight[l][j][k]
@@ -75,7 +75,7 @@ impl Net {
         for window in layers_sizes.windows(2) {
             let k = window[0]; // number of neurons in layer l-1
             let j = window[1]; // number of neurons in layer l
-            ww.push(DMatrix::from_fn(j, k, |_, _| { thread_rng().next_f64() / 10. }));
+            ww.push(DMatrix::from_fn(j, k, |_, _| { thread_rng().next_f32() / 100. }));
         }
 
         Net {
@@ -127,16 +127,13 @@ impl Net {
             let mut sprime = self.z[self.num_layers-1].map(sigmoid_prime);
 
             // output error, using BP1.
-            let mut errors = {
-                let output = self.output();
-                cost_function_prime(solution, output).component_mul(&sprime)
-            };
+            let mut errors = cost_function_prime(solution, self.output()).component_mul(&sprime);
 
             batch_dcost_dbias[self.num_layers-1] += errors.clone(); // BP3
             batch_dcost_dweigth[self.num_layers-1] += errors.clone() * self.a[self.num_layers-2].transpose(); // Adapted from BP4
 
             // Backprop
-            for l in (1 .. self.num_layers - 1).rev() {
+            for l in (1 .. self.num_layers-1).rev() {
                 sprime = self.z[l].map(sigmoid_prime); // sigma'(z^l)
 
                 // errors for the previous layer
@@ -155,8 +152,8 @@ impl Net {
         for (bias, batch_dc_db) in self.b.iter_mut().zip(batch_dcost_dbias.iter()) {
             *bias -= scal * batch_dc_db;
         }
-        for (weights, batch_dc_dw) in self.w.iter_mut().zip(batch_dcost_dweigth.iter()) {
-            *weights -= scal * batch_dc_dw;
+        for (weigths, batch_dc_dw) in self.w.iter_mut().zip(batch_dcost_dweigth.iter()) {
+            *weigths -= scal * batch_dc_dw;
         }
     }
 
