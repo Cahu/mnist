@@ -40,6 +40,9 @@ fn cost_function_prime(expected: &[f64], output: &[f64]) -> DVector<f64> {
 
 impl Net {
     pub fn new(layers_sizes: &[usize]) -> Self {
+        use rand::Rng;
+        use rand::thread_rng;
+
         // number of layers
         let num_layers = layers_sizes.len();
         assert!(num_layers >= 2);
@@ -57,9 +60,9 @@ impl Net {
         zz.push(DVector::from_element(0, 0f64));
 
         for &sz in layers_sizes[1..].iter() {
-            aa.push(DVector::from_element(sz,  0.5));
-            bb.push(DVector::from_element(sz, -0.5));
-            zz.push(DVector::from_element(sz, sigmoid(0.5)));
+            aa.push(DVector::from_fn(sz, |_, _| {   thread_rng().next_f64() / 10. }));
+            bb.push(DVector::from_fn(sz, |_, _| { - thread_rng().next_f64() / 10. }));
+            zz.push(DVector::from_fn(sz, |_, _| {   thread_rng().next_f64() / 10. }));
         }
 
         // weights[l] is the matrix of weigths between layer l and layer l-1. Thus, weight[l][j][k]
@@ -72,7 +75,7 @@ impl Net {
         for window in layers_sizes.windows(2) {
             let k = window[0]; // number of neurons in layer l-1
             let j = window[1]; // number of neurons in layer l
-            ww.push(DMatrix::from_element(j, k, 0.5));
+            ww.push(DMatrix::from_fn(j, k, |_, _| { thread_rng().next_f64() / 10. }));
         }
 
         Net {
