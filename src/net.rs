@@ -65,9 +65,9 @@ impl Net {
             zz.push(DVector::from_fn(sz, |_, _| {   thread_rng().next_f32() / 100. }));
         }
 
-        // weights[l] is the matrix of weigths between layer l and layer l-1. Thus, weight[l][j][k]
+        // weights[l] is the matrix of wieghts between layer l and layer l-1. Thus, weight[l][j][k]
         // is the weight between the k-th neuron of layer l-1 and the j-th neuron in layer l
-        // (weigths[0] won't be used).  Indices j and k appear reversed but the order is intended
+        // (wieghts[0] won't be used).  Indices j and k appear reversed but the order is intended
         // to let us use matrix multiplication.
         let mut ww = Vec::with_capacity(num_layers);
         ww.push(DMatrix::from_element(0, 0, 0.0));
@@ -115,9 +115,9 @@ impl Net {
         }
 
         // initialize matrices to contain partial derivatives of the cost with respect to weights
-        let mut batch_dcost_dweigth = Vec::with_capacity(self.num_layers);
+        let mut batch_dcost_dwieght = Vec::with_capacity(self.num_layers);
         for w in self.w.iter() {
-            batch_dcost_dweigth.push(DMatrix::zeros(w.nrows(), w.ncols()));
+            batch_dcost_dwieght.push(DMatrix::zeros(w.nrows(), w.ncols()));
         }
 
         for &(ref input, ref solution) in batch.iter() {
@@ -130,7 +130,7 @@ impl Net {
             let mut errors = cost_function_prime(solution, self.output()).component_mul(&sprime);
 
             batch_dcost_dbias[self.num_layers-1] += errors.clone(); // BP3
-            batch_dcost_dweigth[self.num_layers-1] += errors.clone() * self.a[self.num_layers-2].transpose(); // Adapted from BP4
+            batch_dcost_dwieght[self.num_layers-1] += errors.clone() * self.a[self.num_layers-2].transpose(); // Adapted from BP4
 
             // Backprop
             for l in (1 .. self.num_layers-1).rev() {
@@ -143,7 +143,7 @@ impl Net {
                 batch_dcost_dbias[l] += errors.clone(); // BP3
 
                 // gradient part of weights
-                batch_dcost_dweigth[l] += errors.clone() * self.a[l-1].transpose(); // Adapted from BP4
+                batch_dcost_dwieght[l] += errors.clone() * self.a[l-1].transpose(); // Adapted from BP4
             }
         }
 
@@ -152,8 +152,8 @@ impl Net {
         for (bias, batch_dc_db) in self.b.iter_mut().zip(batch_dcost_dbias.iter()) {
             *bias -= scal * batch_dc_db;
         }
-        for (weigths, batch_dc_dw) in self.w.iter_mut().zip(batch_dcost_dweigth.iter()) {
-            *weigths -= scal * batch_dc_dw;
+        for (wieghts, batch_dc_dw) in self.w.iter_mut().zip(batch_dcost_dwieght.iter()) {
+            *wieghts -= scal * batch_dc_dw;
         }
     }
 
@@ -162,9 +162,9 @@ impl Net {
         assert!(layer < self.num_layers);
         self.z[layer] = { // weighted input
             let activations = &self.a[layer-1];
-            let weigths     = &self.w[layer];
+            let wieghts     = &self.w[layer];
             let biases      = &self.b[layer];
-            weigths * activations + biases
+            wieghts * activations + biases
         };
         self.a[layer] = self.z[layer].map(sigmoid);
     }
