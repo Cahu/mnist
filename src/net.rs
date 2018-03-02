@@ -47,44 +47,38 @@ impl Net {
         let num_layers = layers_sizes.len();
         assert!(num_layers >= 2);
 
-        // Activation value of neurons. aa[0] contains the input.
-        let mut aa = Vec::with_capacity(num_layers);
-        aa.push(DVector::from_element(layers_sizes[0], 0f32));
+        // Activation value of neurons. a[0] contains the input.
+        let mut a = Vec::with_capacity(num_layers);
+        a.push(DVector::from_element(layers_sizes[0], 0f32));
 
-        // Biases. bb[0] won't be used since layer 0 is the input layer.
-        let mut bb = Vec::with_capacity(num_layers);
-        bb.push(DVector::from_element(0, 0f32));
+        // Biases. b[0] won't be used since layer 0 is the input layer.
+        let mut b = Vec::with_capacity(num_layers);
+        b.push(DVector::from_element(0, 0f32));
 
-        // Weigthed inputs. zz[0] won't be used since layer 0 corresponds to the input layer.
-        let mut zz = Vec::with_capacity(num_layers);
-        zz.push(DVector::from_element(0, 0f32));
+        // Weigthed inputs. z[0] won't be used since layer 0 corresponds to the input layer.
+        let mut z = Vec::with_capacity(num_layers);
+        z.push(DVector::from_element(0, 0f32));
 
         for &sz in layers_sizes[1..].iter() {
-            aa.push(DVector::from_fn(sz, |_, _| {   thread_rng().next_f32() / 100. }));
-            bb.push(DVector::from_fn(sz, |_, _| { - thread_rng().next_f32() / 100. }));
-            zz.push(DVector::from_fn(sz, |_, _| {   thread_rng().next_f32() / 100. }));
+            a.push(DVector::from_fn(sz, |_, _| {   thread_rng().next_f32() / 100. }));
+            b.push(DVector::from_fn(sz, |_, _| { - thread_rng().next_f32() / 100. }));
+            z.push(DVector::from_fn(sz, |_, _| {   thread_rng().next_f32() / 100. }));
         }
 
         // weights[l] is the matrix of wieghts between layer l and layer l-1. Thus, weight[l][j][k]
         // is the weight between the k-th neuron of layer l-1 and the j-th neuron in layer l
         // (wieghts[0] won't be used).  Indices j and k appear reversed but the order is intended
         // to let us use matrix multiplication.
-        let mut ww = Vec::with_capacity(num_layers);
-        ww.push(DMatrix::from_element(0, 0, 0.0));
+        let mut w = Vec::with_capacity(num_layers);
+        w.push(DMatrix::from_element(0, 0, 0.0));
 
         for window in layers_sizes.windows(2) {
             let k = window[0]; // number of neurons in layer l-1
             let j = window[1]; // number of neurons in layer l
-            ww.push(DMatrix::from_fn(j, k, |_, _| { thread_rng().next_f32() / 100. }));
+            w.push(DMatrix::from_fn(j, k, |_, _| { thread_rng().next_f32() / 100. }));
         }
 
-        Net {
-            num_layers: num_layers,
-            z: zz,
-            a: aa,
-            w: ww,
-            b: bb,
-        }
+        Net { num_layers, z, a, w, b }
     }
 
     pub fn output(&self) -> &[f32] {
