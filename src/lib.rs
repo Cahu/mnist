@@ -56,27 +56,38 @@ pub fn run_identity() {
 pub fn run_mnist() {
     let matches = App::new("MNIST test")
         .arg(
-            Arg::with_name("IMAGES-FILE")
-                .help("mnist image file")
+            Arg::with_name("TRAINING-IMAGES")
+                .help("mnist training image file")
                 .required(true)
                 .index(1)
         )
         .arg(
-            Arg::with_name("LABELS-FILE")
-                .help("mnist solution file")
+            Arg::with_name("TRAINING-LABELS")
+                .help("mnist training labels file")
                 .required(true)
                 .index(2)
         )
+        .arg(
+            Arg::with_name("TEST-IMAGES")
+                .help("mnist test images file")
+                .required(true)
+                .index(3)
+        )
+        .arg(
+            Arg::with_name("TEST-LABELS")
+                .help("mnist test labels file")
+                .required(true)
+                .index(4)
+        )
         .get_matches();
 
-    let images_file = matches.value_of("IMAGES-FILE").unwrap();
-    let labels_file = matches.value_of("LABELS-FILE").unwrap();
-
-    let images = Images::new(images_file).unwrap();
-    let labels = Labels::new(labels_file).unwrap();
+    let training_images = Images::new( matches.value_of("TRAINING-IMAGES").unwrap() ).expect("Could not load training images");
+    let training_labels = Labels::new( matches.value_of("TRAINING-LABELS").unwrap() ).expect("Could not load training labels");
+    let test_images     = Images::new( matches.value_of("TEST-IMAGES").unwrap()     ).expect("Could not load test images");
+    let test_labels     = Labels::new( matches.value_of("TEST-LABELS").unwrap()     ).expect("Could not load test labels");
 
     // Build the network
-    let layers = [images.image_size(), 16, 16, 10];
+    let layers = [training_images.image_size(), 16, 16, 10];
     let mut net = Net::new(&layers);
 
     // Build batches
@@ -84,20 +95,35 @@ pub fn run_mnist() {
     let learning_rate = 0.05f32;
 
     // Make pairs of example+solution
-    let training_examples : Vec<_> = images.iter().zip(labels.iter())
+    let training_examples : Vec<_> = training_images.iter().zip(training_labels.iter())
         .map(|(ref i, &l)| (input_from_image(i), solution_from_label(l)) )
         .collect();
 
-    for epoch in 0 .. 1000 {
-        println!("epoch: {}", epoch);
+    let test_examples : Vec<_> = test_images.iter().zip(test_labels.iter())
+        .map(|(ref i, &l)| (input_from_image(i), solution_from_label(l)) )
+        .collect();
 
+    let mut accuracy = Vec::new();
+    for epoch in 0 .. 100 {
         // Feed training batches to the net
         for chunk in training_examples.chunks(batch_size) {
             // Feed the batch
             net.learn_batch(chunk, learning_rate);
         }
 
-        println!("After learning (epoch {})...", epoch);
+        let mut correct_guesses = 0;
+        for &(ref input, ref solution) in &test_examples {
+            let guess = net.feed(input);
+            if guess_as_integer(guess) == guess_as_integer(solution) {
+                correct_guesses += 1;
+            }
+        }
+
+        let epoch_accuracy = 100.0 * correct_guesses as f64 / test_examples.len() as f64;
+        println!("Epoch {}, accuracy = {}%", epoch, epoch_accuracy);
+
+        accuracy.push(epoch_accuracy);
+        /*
         for &(ref input, ref solution) in training_examples.iter().skip(epoch*10).take(10) {
             let guessed  = net.feed(&input);
             let cost     = cost_function(&guessed, &solution);
@@ -105,6 +131,7 @@ pub fn run_mnist() {
             println!("Guess: {} vs {} - Cost: {}", guess_as_integer(&guessed), guess_as_integer(&solution), cost);
             println!("Guess: {:?}", guessed);
         }
+        */
     }
 }
 
