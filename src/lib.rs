@@ -1,5 +1,6 @@
 extern crate rand;
 extern crate image;
+extern crate gnuplot;
 extern crate byteorder;
 extern crate nalgebra;
 extern crate clap;
@@ -15,6 +16,8 @@ use net::Net;
 use net::cost_function;
 use images::{Images, Image};
 use labels::Labels;
+
+use gnuplot::{Figure, Color, AxesCommon};
 
 
 pub fn run_identity() {
@@ -92,7 +95,7 @@ pub fn run_mnist() {
 
     // Build batches
     let batch_size = 10;
-    let learning_rate = 0.05f32;
+    let learning_rate = 0.1f32;
 
     // Make pairs of example+solution
     let training_examples : Vec<_> = training_images.iter().zip(training_labels.iter())
@@ -103,35 +106,33 @@ pub fn run_mnist() {
         .map(|(ref i, &l)| (input_from_image(i), solution_from_label(l)) )
         .collect();
 
-    let mut accuracy = Vec::new();
-    for epoch in 0 .. 100 {
+    let mut figure = Figure::new();
+    let mut costs = Vec::new();
+    let mut accuracies = Vec::new();
+    for epoch in 0 .. 400 {
         // Feed training batches to the net
         for chunk in training_examples.chunks(batch_size) {
             // Feed the batch
             net.learn_batch(chunk, learning_rate);
         }
 
+        let mut cost = 0f32;
         let mut correct_guesses = 0;
         for &(ref input, ref solution) in &test_examples {
             let guess = net.feed(input);
             if guess_as_integer(guess) == guess_as_integer(solution) {
                 correct_guesses += 1;
             }
+            cost += cost_function(&guess, &solution);
         }
 
-        let epoch_accuracy = 100.0 * correct_guesses as f64 / test_examples.len() as f64;
-        println!("Epoch {}, accuracy = {}%", epoch, epoch_accuracy);
+        let cost     = cost as f64 / test_examples.len() as f64;
+        let accuracy = 100.0 * correct_guesses as f64 / test_examples.len() as f64;
+        println!("Epoch {}, accuracy = {}%, cost = {}", epoch, accuracy, cost);
 
-        accuracy.push(epoch_accuracy);
-        /*
-        for &(ref input, ref solution) in training_examples.iter().skip(epoch*10).take(10) {
-            let guessed  = net.feed(&input);
-            let cost     = cost_function(&guessed, &solution);
-
-            println!("Guess: {} vs {} - Cost: {}", guess_as_integer(&guessed), guess_as_integer(&solution), cost);
-            println!("Guess: {:?}", guessed);
-        }
-        */
+        costs.push(cost);
+        accuracies.push(accuracy);
+        plot_performance(&mut figure, &accuracies, &costs);
     }
 }
 
@@ -158,4 +159,18 @@ fn guess_as_integer(guess: &[f32]) -> u8 {
         }
     }
     return i as u8;
+}
+
+fn plot_performance(fg: &mut Figure, accuracies: &[f64], costs: &[f64]) {
+    let epochs : Vec<_> = (0 .. accuracies.len() + 1).collect();
+    fg.clear_axes();
+    fg.axes2d()
+        .set_pos(0.0, 0.0)
+        .set_size(0.5, 1.0)
+        .lines(&epochs, accuracies, &[Color("blue")]);
+    fg.axes2d()
+        .set_pos(0.5, 0.0)
+        .set_size(0.5, 1.0)
+        .lines(&epochs, costs, &[Color("red")]);
+    fg.show();
 }
