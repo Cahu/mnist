@@ -1,6 +1,5 @@
 extern crate rand;
 extern crate image;
-extern crate gnuplot;
 extern crate byteorder;
 extern crate nalgebra;
 extern crate clap;
@@ -17,7 +16,8 @@ use net::cost_function;
 use images::{Images, Image};
 use labels::Labels;
 
-use gnuplot::{Figure, Color, AxesCommon};
+use std::fs::File;
+use std::io::Write;
 
 
 pub fn run_identity() {
@@ -59,6 +59,13 @@ pub fn run_identity() {
 pub fn run_mnist() {
     let matches = App::new("MNIST test")
         .arg(
+            Arg::with_name("output")
+                .short("o")
+                .long("output")
+                .takes_value(true)
+                .help("Output file for performance stats")
+        )
+        .arg(
             Arg::with_name("TRAINING-IMAGES")
                 .help("mnist training image file")
                 .required(true)
@@ -89,6 +96,11 @@ pub fn run_mnist() {
     let test_images     = Images::new( matches.value_of("TEST-IMAGES").unwrap()     ).expect("Could not load test images");
     let test_labels     = Labels::new( matches.value_of("TEST-LABELS").unwrap()     ).expect("Could not load test labels");
 
+    let mut stats_file = matches.value_of("output").map(|filename| {
+        let err = format!("Could not open {} for writing", filename);
+        File::create(filename).expect(&err)
+    });
+
     // Build the network
     let layers = [training_images.image_size(), 16, 16, 10];
     let mut net = Net::new(&layers);
@@ -106,13 +118,9 @@ pub fn run_mnist() {
         .map(|(ref i, &l)| (input_from_image(i), solution_from_label(l)) )
         .collect();
 
-    let mut figure = Figure::new();
-    let mut costs = Vec::new();
-    let mut accuracies = Vec::new();
     for epoch in 0 .. 400 {
         // Feed training batches to the net
         for chunk in training_examples.chunks(batch_size) {
-            // Feed the batch
             net.learn_batch(chunk, learning_rate);
         }
 
@@ -126,13 +134,13 @@ pub fn run_mnist() {
             cost += cost_function(&guess, &solution);
         }
 
-        let cost     = cost as f64 / test_examples.len() as f64;
-        let accuracy = 100.0 * correct_guesses as f64 / test_examples.len() as f64;
-        println!("Epoch {}, accuracy = {}%, cost = {}", epoch, accuracy, cost);
+        let cost     = cost / test_examples.len() as f32;
+        let accuracy = 100.0 * correct_guesses as f32 / test_examples.len() as f32;
+        println!("Epoch {}: Accuracy={}% AvgCost={}", epoch, accuracy, cost);
 
-        costs.push(cost);
-        accuracies.push(accuracy);
-        plot_performance(&mut figure, &accuracies, &costs);
+        if let Some(ref mut f) = stats_file {
+            writeln!(f, "{} {} {}", epoch, accuracy, cost).ok();
+        }
     }
 }
 
@@ -159,18 +167,4 @@ fn guess_as_integer(guess: &[f32]) -> u8 {
         }
     }
     return i as u8;
-}
-
-fn plot_performance(fg: &mut Figure, accuracies: &[f64], costs: &[f64]) {
-    let epochs : Vec<_> = (0 .. accuracies.len() + 1).collect();
-    fg.clear_axes();
-    fg.axes2d()
-        .set_pos(0.0, 0.0)
-        .set_size(0.5, 1.0)
-        .lines(&epochs, accuracies, &[Color("blue")]);
-    fg.axes2d()
-        .set_pos(0.5, 0.0)
-        .set_size(0.5, 1.0)
-        .lines(&epochs, costs, &[Color("red")]);
-    fg.show();
 }
